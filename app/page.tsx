@@ -12,6 +12,28 @@ import FinalCTA from '@/components/FinalCTA';
 import Footer from '@/components/Footer';
 import ContactControls from '@/components/ContactControls';
 
+/** Assembles the landing page sections in their display order. */
 export default function Home() {
-  return <><a className="skip-link" href="#main-content">Skip to content</a><Navbar /><main id="main-content"><Hero /><TrustStrip /><ProblemSection /><ServicesSection /><Modules /><HowItWorks /><CustomerTrust /><Destinations /><FAQ /><FinalCTA /></main><Footer /><ContactControls /></>;
+  return (
+    <>
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
+      <Navbar />
+      <main id="main-content">
+        <Hero />
+        <TrustStrip />
+        <ProblemSection />
+        <ServicesSection />
+        <Modules />
+        <HowItWorks />
+        <CustomerTrust />
+        <Destinations />
+        <FAQ />
+        <FinalCTA />
+      </main>
+      <Footer />
+      <ContactControls />
+    </>
+  );
 }

@@ -160,7 +160,7 @@ export const faqs = [
   ],
   [
     'How can I contact Kaah?',
-    'The fastest option is WhatsApp. You can also prepare a request through our website and send it to our team in WhatsApp.',
+    'The fastest option is WhatsApp. You can also submit a request through our website to send it directly to our team by email.',
   ],
 ];
 

@@ -1,6 +1,6 @@
 # Kaah Travel & Cargo
 
-The Kaah landing page preserves the original layout, responsive grids, section spacing, and Google Poppins font, with the official blue-and-green company branding. It includes interactive flight and cargo inquiries, WhatsApp handoffs, a keyboard-accessible FAQ and booking tabs, and mobile conversion controls.
+The Kaah landing page preserves the original layout, responsive grids, section spacing, and Google Poppins font, with the official blue-and-green company branding. It includes interactive flight and cargo inquiries, email submissions, a keyboard-accessible FAQ and booking tabs, and mobile conversion controls.
 
 ## Run
 
@@ -26,7 +26,7 @@ Optional `NEXT_PUBLIC_PHONE_NUMBER` and `NEXT_PUBLIC_OFFICE_ADDRESS` are shown o
 - `components/LeadForm.tsx` exports shared `LeadForm`, `FlightInquiryForm`, and `CargoQuoteForm`.
 - Forms validate required fields, cities, dates, passenger counts, positive weights, and phone format.
 - `lib/whatsapp.ts` formats and encodes the inquiry and builds the WhatsApp URL.
-- Valid submissions open WhatsApp with the details. The visitor must send the message there; the website does not claim it has sent the inquiry.
+- Valid submissions POST to `/api/inquiries`, which validates again and sends the details by email. A right-side success popup appears only after the provider accepts the email. Failed submissions keep the entered details.
 - A visible fallback link allows opening the prepared message if the browser blocks a popup.
 - No backend or storage is implemented. Form details are logged only in development.
 - Missing or invalid WhatsApp configuration produces an explicit error; it never uses a made-up number.
@@ -81,3 +81,9 @@ These are illustrative stock photos, not photographs of Kaah staff, customers, o
 `components/SectionPhoto.tsx` is the shared image component for the challenge cards, detailed service forms, process steps, About story, FAQ, and destination gallery. Give its container a height in `app/globals.css` and supply a responsive `sizes` value. The component reserves the container space and provides a blurred placeholder while loading.
 
 `data/site-images.ts` contains the `moduleImages`, `stepImages`, `sectionImages`, and `destinationImages` collections. Country entries in `data/site-content.ts` pair each local city photograph with its flag. Destination photos load eagerly so the scrolling gallery always has its next image ready; other section images load lazily. Existing testimonial placeholders remain text-only so stock photographs are not mistaken for real customers.
+
+## Inquiry email setup
+
+Set `RESEND_API_KEY`, `INQUIRY_EMAIL_FROM` (a verified sender), and `INQUIRY_EMAIL_TO` (your receiving address) in `.env.local` and your hosting environment, then restart the server. These are server-only variables; never prefix the API key with `NEXT_PUBLIC_`. See https://resend.com/docs/api-reference/emails/send-email for provider setup.
+
+Without these settings, forms report email delivery as unavailable and do not show success. The provider accepting an email does not guarantee inbox delivery. Test delivery to your receiving address after configuration. Deploy using a Next.js server runtime, since static hosting cannot execute the email endpoint.

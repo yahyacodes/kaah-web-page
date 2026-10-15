@@ -14,10 +14,9 @@ export default function PrivacyPage() {
       </p>
       <h2>Sending your inquiry</h2>
       <p>
-        The website prepares a WhatsApp message in your browser. It does not submit your form to a
-        website database. Your inquiry reaches Kaah only when you send the prepared message in
-        WhatsApp. Kaah uses the information you share to respond to your request and discuss your
-        travel or cargo arrangements.
+        Submitting a form sends your inquiry to Kaah by email through our email delivery provider.
+        Kaah uses the information you share to respond to your request and discuss your travel or
+        cargo arrangements. The website does not store inquiries in a website database.
       </p>
       <h2>WhatsApp and external services</h2>
       <p>

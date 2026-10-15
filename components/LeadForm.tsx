@@ -1,31 +1,29 @@
 'use client';
 
-import { useId, useState } from 'react';
-import { ArrowRight, MessageCircle } from 'lucide-react';
-import { formatInquiry, getWhatsAppUrl } from '@/lib/whatsapp';
+import { useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { ArrowRight, Mail, CheckCircle, X } from 'lucide-react';
+import { localToday, validateInquiry } from '@/lib/inquiry';
 
 type LeadFormProps = { type: 'flight' | 'cargo'; compact?: boolean; buttonLabel?: string };
 
-/** Returns today in local YYYY-MM-DD format for date field validation. */
-function localToday() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-}
-
-/** Collects and validates flight or cargo details before a WhatsApp handoff. */
+/** Collects and validates flight or cargo details before sending them by email. */
 export default function LeadForm({ type, compact = false, buttonLabel }: LeadFormProps) {
   const id = useId();
   const [departure, setDeparture] = useState('');
   const [error, setError] = useState('');
-  const [handoff, setHandoff] = useState<string | null>(null);
-  const [attempted, setAttempted] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [sending, setSending] = useState(false);
+  const pending = useRef(false);
   const isFlight = type === 'flight';
   // Give each field a unique ID when several inquiry forms share a page.
   const field = (name: string) => `${id}-${name}`;
 
-  /** Validates inquiry fields and opens WhatsApp with the prepared message. */
-  function submit(event: React.FormEvent<HTMLFormElement>) {
+  /** Sends only validated requests and confirms provider acceptance. */
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending.current) return;
+    const form = event.currentTarget;
     const data = Object.fromEntries(
       Array.from(new FormData(event.currentTarget).entries()).map(([key, value]) => [
         key,
@@ -33,61 +31,36 @@ export default function LeadForm({ type, compact = false, buttonLabel }: LeadFor
       ]),
     );
     setError('');
-    setHandoff(null);
-    setAttempted(false);
-    if (!data.name || !data.from || !data.to) {
-      setError('Please enter your name, departure city, and destination.');
+    setSuccess(false);
+    const validationError = validateInquiry(type, data);
+    if (validationError) {
+      setError(validationError);
       return;
     }
-    if (data.from.toLocaleLowerCase() === data.to.toLocaleLowerCase()) {
-      setError('Please choose different departure and destination cities.');
-      return;
-    }
-    if (
-      !/^\+?[\d\s()-]{7,25}$/.test(data.phone) ||
-      data.phone.replace(/\D/g, '').length < 7 ||
-      data.phone.replace(/\D/g, '').length > 15
-    ) {
-      setError('Enter a valid phone or WhatsApp number, including your country code.');
-      return;
-    }
-    if (isFlight && (!data.departure || data.departure < localToday())) {
-      setError('Choose a departure date today or later.');
-      return;
-    }
-    if (isFlight && data.return && data.return < data.departure) {
-      setError('The return date must be on or after departure.');
-      return;
-    }
-    if (
-      isFlight &&
-      (!Number.isInteger(Number(data.passengers)) ||
-        Number(data.passengers) < 1 ||
-        Number(data.passengers) > 99)
-    ) {
-      setError('Enter between 1 and 99 passengers.');
-      return;
-    }
-    if (!isFlight && (!Number.isFinite(Number(data.weight)) || Number(data.weight) <= 0)) {
-      setError('Enter an approximate weight greater than zero.');
-      return;
-    }
-    if (!isFlight && !compact && !data.description) {
-      setError('Please briefly describe what you are sending.');
-      return;
-    }
-    if (process.env.NODE_ENV === 'development') console.info('Kaah inquiry:', { type, ...data });
-    const url = getWhatsAppUrl(formatInquiry(type, data));
-    setAttempted(true);
-    if (!url) {
+    pending.current = true;
+    setSending(true);
+    try {
+      const response = await fetch('/api/inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type, details: data }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success)
+        throw new Error(result.error || 'We could not send your request. Please try again.');
+      form.reset();
+      setDeparture('');
+      setSuccess(true);
+    } catch (error) {
       setError(
-        'WhatsApp inquiries are not connected yet. Your details have not been sent. Please try again later.',
+        error instanceof Error
+          ? error.message
+          : 'We could not send your request. Please try again.',
       );
-      return;
+    } finally {
+      pending.current = false;
+      setSending(false);
     }
-    setHandoff(url);
-    // No backend: the customer must send the prepared message in WhatsApp.
-    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   return (
@@ -96,12 +69,11 @@ export default function LeadForm({ type, compact = false, buttonLabel }: LeadFor
       onSubmit={submit}
       onChange={() => {
         setError('');
-        setHandoff(null);
-        setAttempted(false);
+        setSuccess(false);
       }}
       aria-label={`${isFlight ? 'Flight inquiry' : 'Cargo quote'}${compact ? ' quick' : ''} form`}
     >
-      <div className="lead-fields">
+      <fieldset className="lead-fields" disabled={sending}>
         <label htmlFor={field('from')}>
           {compact ? 'From' : isFlight ? 'Flying From' : 'Sending From'}
           <input
@@ -202,7 +174,7 @@ export default function LeadForm({ type, compact = false, buttonLabel }: LeadFor
                 <option>Other</option>
               </select>
             </label>
-            {!compact && (
+            {
               <label className="full-field" htmlFor={field('description')}>
                 Description
                 <textarea
@@ -214,7 +186,7 @@ export default function LeadForm({ type, compact = false, buttonLabel }: LeadFor
                   required
                 />
               </label>
-            )}
+            }
           </>
         )}
         <label htmlFor={field('name')}>
@@ -240,13 +212,15 @@ export default function LeadForm({ type, compact = false, buttonLabel }: LeadFor
             required
           />
         </label>
-      </div>
-      <button className="button form-submit" type="submit">
-        {buttonLabel || (isFlight ? 'Check Available Flights' : 'Get Cargo Price')}
+      </fieldset>
+      <button className="button form-submit" type="submit" disabled={sending} aria-busy={sending}>
+        {sending
+          ? 'Sending…'
+          : buttonLabel || (isFlight ? 'Check Available Flights' : 'Get Cargo Price')}
         <ArrowRight size={16} aria-hidden="true" />
       </button>
       <p className="form-note">
-        <MessageCircle size={12} aria-hidden="true" /> Continue in WhatsApp to send your inquiry.{' '}
+        <Mail size={12} aria-hidden="true" /> Send your request directly to our team.{' '}
         <a href="/privacy">Privacy</a>
       </p>
       {error && (
@@ -254,14 +228,27 @@ export default function LeadForm({ type, compact = false, buttonLabel }: LeadFor
           {error}
         </p>
       )}
-      {attempted && handoff && (
-        <div className="handoff-status" role="status">
-          <p>Your inquiry is ready. Send the message in WhatsApp to reach our team.</p>
-          <a href={handoff} target="_blank" rel="noopener noreferrer">
-            Open WhatsApp with your details <ArrowRight size={13} />
-          </a>
-        </div>
-      )}
+      {success &&
+        createPortal(
+          <div className="inquiry-toast" role="status" aria-live="polite">
+            <CheckCircle size={24} aria-hidden="true" />
+            <div>
+              <strong>Request sent successfully!</strong>
+              <p>
+                Thank you. Our team will contact you about your {isFlight ? 'flight' : 'cargo'}{' '}
+                request.
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-label="Dismiss success message"
+              onClick={() => setSuccess(false)}
+            >
+              <X size={18} />
+            </button>
+          </div>,
+          document.body,
+        )}
     </form>
   );
 }

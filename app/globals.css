@@ -3777,6 +3777,13 @@ button:focus-visible {
 .hero-art {
   border-radius: 28px 0 0 28px;
 }
+.hero-art > img {
+  object-fit: cover;
+}
+.hero-art > .booking-panel {
+  position: relative;
+  z-index: 1;
+}
 .hero-art::before {
   width: 570px;
   height: 570px;
@@ -4009,19 +4016,20 @@ button:focus-visible {
   box-sizing: content-box;
 }
 
-/* Photo headers overlap the white inquiry panels without covering form fields. */
+/* Photos fill the artwork containers behind the inquiry panels. */
 .module-art.module-with-photo {
   flex-direction: column;
   align-items: center;
-  padding: 0 34px 34px;
+  padding: 34px;
 }
 .module-photo {
-  width: calc(100% + 68px);
-  height: 240px;
-  margin-inline: -34px;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
 .module-with-photo .inquiry-card {
-  margin-top: -34px;
+  margin-top: 0;
 }
 .step-photo {
   height: 265px;
@@ -4106,12 +4114,7 @@ button:focus-visible {
 
 @media (max-width: 800px) {
   .module-art.module-with-photo {
-    padding: 0 22px 25px;
-  }
-  .module-photo {
-    width: calc(100% + 44px);
-    height: 210px;
-    margin-inline: -22px;
+    padding: 25px 22px;
   }
   .problem-photo {
     height: 150px;
@@ -4141,15 +4144,7 @@ button:focus-visible {
     padding: 0 24px 26px;
   }
   .module-art.module-with-photo {
-    padding: 0 12px 20px;
-  }
-  .module-photo {
-    width: calc(100% + 24px);
-    height: 190px;
-    margin-inline: -12px;
-  }
-  .module-with-photo .inquiry-card {
-    margin-top: -24px;
+    padding: 20px 12px;
   }
   .about-photo-story {
     grid-template-columns: 1fr;
@@ -4195,5 +4190,58 @@ button:focus-visible {
   .destination-gallery .integration-track {
     animation: none;
     transform: none;
+  }
+}
+
+fieldset.lead-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.form-submit:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.inquiry-toast {
+  position: fixed;
+  top: 96px;
+  right: 24px;
+  z-index: 10000;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: min(420px, calc(100vw - 32px));
+  padding: 20px;
+  border: 1px solid #b6d8bd;
+  border-left: 4px solid #287942;
+  border-radius: 12px;
+  background: #fff;
+  color: #184d2b;
+  box-shadow: 0 12px 36px #143e5926;
+}
+.inquiry-toast > svg {
+  flex-shrink: 0;
+}
+.inquiry-toast strong {
+  font-size: 15px;
+}
+.inquiry-toast p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.inquiry-toast button {
+  display: flex;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+@media (max-width: 560px) {
+  .inquiry-toast {
+    right: 16px;
+    top: 80px;
   }
 }
